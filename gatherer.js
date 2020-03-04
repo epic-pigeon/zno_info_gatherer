@@ -1,6 +1,7 @@
 const https = require("https");
 const path = require("path");
 const zlib = require("zlib");
+const fs = require("fs");
 
 //const KeyEncoder = require('key-encoder').default;
 //let keyEncoder = new KeyEncoder('secp256k1');
@@ -14,7 +15,26 @@ let HeadersGenerator = () => ({
     }
 });
 
+const RequestsSaver = {
+    filename: "./requests",
+    load() {
+        if (fs.existsSync(this.filename)) {
+            this.requests = fs.readFileSync("requests", "UTF-8").toString().split("\n");
+        } else {
+            this.requests = [];
+            fs.writeFileSync(this.filename, "", "UTF-8");
+        }
+    },
+    save(request) {
+        this.requests.push(request);
+        this._writeFile();
+    },
+    _writeFile() {
+        fs.writeFileSync(this.filename, this.requests.join("\n"), "UTF-8");
+    }
+};
 
+RequestsSaver.load();
 
 rootCas.addFile(path.resolve(__dirname, 'intermediate.pem'));
 
@@ -70,6 +90,7 @@ function gather(email) {
                     }
                     let parsed = JSON.parse(result.toString());
                     if (parsed.status === "success") {
+                        RequestsSaver.save(email);
                         resolve({
                             personalCode: parsed.cu_pers_code,
                             pin: parsed.cu_pin
