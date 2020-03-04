@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ZNO Info Gatherer</title>
+    <script>
+        window.onload = function () {
+            let button = document.getElementById("button");
+            let result = document.getElementById("result");
+            button.onclick = function () {
+                button.enabled = false;
+                let email = document.getElementById("email").value;
+                let xhr = new XMLHttpRequest();
+                xhr.open("GET", "?email=" + encodeURIComponent(email), true);
+                xhr.send();
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState != 4) return;
+
+                    if (xhr.status == 200) {
+                        let parsed = JSON.parse(xhr.responseText);
+                        //console.log(parsed);
+                        if (parsed.success) {
+                            result.innerText = `Personal code: ${parsed.personalCode}, PIN: ${parsed.pin}`;
+                        } else {
+                            result.innerText = parsed.message;
+                        }
+                        button.enabled = true;
+                    } else {
+                        result.innerText = "Error: bad response code: " + xhr.status;
+                        button.enabled = true;
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+<label for="email">Enter email: </label><input type="email" id="email"><br>
+<button id="button">Gather</button><br>
+Result:<br>
+<div id="result"></div>
+</body>
+</html>
