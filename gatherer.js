@@ -12,6 +12,9 @@ let HeadersGenerator = () => ({
     headers: {},
     setRequestHeader(name, value) {
         this.headers[name] = value;
+    },
+    deleteHeader(name) {
+        delete this.headers[name];
     }
 });
 
@@ -26,8 +29,10 @@ const RequestsSaver = {
         }
     },
     save(request) {
-        this.requests.push(request);
-        this._writeFile();
+        if (!this.requests.some(req => req === request)) {
+            this.requests.push(request);
+            this._writeFile();
+        }
     },
     _writeFile() {
         fs.writeFileSync(this.filename, this.requests.join("\n"), "UTF-8");
@@ -77,6 +82,8 @@ function gather(email) {
 
             //res.setEncoding("raw");
 
+            let thisCookie = res.headers["set-cookie"][0].split(";")[0].split("=")[1];
+
             let chunks = [];
 
             res.on("data", chunks.push.bind(chunks));
@@ -91,10 +98,73 @@ function gather(email) {
                     let parsed = JSON.parse(result.toString());
                     if (parsed.status === "success") {
                         RequestsSaver.save(email);
-                        resolve({
-                            personalCode: parsed.cu_pers_code,
-                            pin: parsed.cu_pin
+
+                        let authPostData = `code=${parsed.cu_pers_code}&pass=${parsed.cu_pin}`;
+
+                        headersGenerator.setRequestHeader("cookie", `this=${thisCookie}`);
+                        headersGenerator.setRequestHeader("sec-fetch-dest", "empty");
+                        headersGenerator.setRequestHeader("sec-fetch-mode", "cors");
+                        headersGenerator.setRequestHeader("Content-Length", Buffer.byteLength(authPostData));
+                        headersGenerator.setRequestHeader("sec-fetch-site", "same-origin");
+                        headersGenerator.setRequestHeader("Accept-Language", "en-US,en;q=0.9,ru-UA;q=0.8,ru;q=0.7,uk;q=0.6");
+                        options = {
+                            host: "zno-kharkiv.org.ua",
+                            port: 443,
+                            path: "/register/api/auth",
+                            method: "POST",
+                            headers: headersGenerator.headers,
+                        };
+
+                        let authReq = https.request(options, function () {
+                            headersGenerator.setRequestHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
+                            headersGenerator.setRequestHeader("Cache-Control", "max-age=0");
+                            headersGenerator.setRequestHeader("sec-fetch-dest", "document");
+                            headersGenerator.setRequestHeader("sec-fetch-mode", "navigate");
+                            headersGenerator.setRequestHeader("sec-fetch-user", "?1");
+                            headersGenerator.setRequestHeader("upgrade-insecure-requests", "1");
+                            headersGenerator.setRequestHeader("sec-fetch-site", "same-origin");
+                            headersGenerator.deleteHeader("Content-Length");
+                            options = {
+                                host: "zno-kharkiv.org.ua",
+                                port: 443,
+                                path: "/register/cabinet",
+                                method: "GET",
+                                headers: headersGenerator.headers,
+                            };
+                            https.request(options, function (cabinetResponse) {
+                                let chunks = [];
+                                cabinetResponse.on("data", chunks.push.bind(chunks));
+                                cabinetResponse.on("end", () => {
+                                    zlib.gunzip(Buffer.concat(chunks), function (err, resultBuff) {
+                                        if (err) {
+                                            throw err;
+                                        }
+                                        //console.log(result.toString())
+                                        let result = resultBuff.toString("utf8");
+                                        //console.log(result);
+                                        //let email = result.split("<th class=\"text-right\">Email</th>")[1].split()
+
+                                        const getHeader = header => result.split(header)[1].split("</td>")[0].split(">")[1];
+
+                                        resolve({
+                                            personalCode: parsed.cu_pers_code,
+                                            pin: parsed.cu_pin,
+                                            surname: getHeader("<th width=\"50%\" class=\"text-right\">Прізвище</th>"),
+                                            name: getHeader("<th class=\"text-right\">Ім'я</th>"),
+                                            fatherName: getHeader("<th class=\"text-right\">По-батькові</th>"),
+                                            birthday: getHeader("<th class=\"text-right\">Дата народження</th>"),
+                                            phone: getHeader("<th class=\"text-right\">Контактний телефон</th>"),
+                                            city: getHeader("<th class=\"text-right\">Місце постійного проживання</th>"),
+                                            school: getHeader("<th class=\"text-right\">Навчальний заклад</th>"),
+                                        });
+                                    })
+                                    //console.log(Buffer.concat(chunks).toString());
+                                })
+                            }).end();
                         });
+
+                        authReq.write(Buffer.from(authPostData).toString("utf8"));
+                        authReq.end();
                     } else reject(new Error("Server error or no user found"));
                 });
             });

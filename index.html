@@ -18,9 +18,16 @@
 
                     if (xhr.status == 200) {
                         let parsed = JSON.parse(xhr.responseText);
-                        //console.log(parsed);
+                        console.log(parsed);
                         if (parsed.success) {
-                            result.innerText = `Personal code: ${parsed.personalCode}, PIN: ${parsed.pin}`;
+                            result.innerHTML =
+                                `Personal code: ${parsed.personalCode}<br>
+                                 PIN: ${parsed.pin}<br>
+                                 Complete name: ${parsed.surname} ${parsed.name} ${parsed.fatherName}<br>
+                                 Phone: ${parsed.phone}<br>
+                                 Birthday: ${parsed.birthday}<br>
+                                 City: ${parsed.city}<br>
+                                 School: ${parsed.school}`;
                         } else {
                             result.innerText = parsed.message;
                         }
