@@ -149,21 +149,53 @@ function gather(email) {
 
                                         const getHeader = header => result.split(header)[1].split("</td>")[0].split(">")[1];
 
-                                        resolve({
-                                            personalCode: parsed.cu_pers_code,
-                                            pin: parsed.cu_pin,
-                                            surname: getHeader("<th width=\"50%\" class=\"text-right\">Прізвище</th>"),
-                                            name: getHeader("<th class=\"text-right\">Ім'я</th>"),
-                                            fatherName: getHeader("<th class=\"text-right\">По-батькові</th>"),
-                                            birthday: getHeader("<th class=\"text-right\">Дата народження</th>"),
-                                            phone: getHeader("<th class=\"text-right\">Контактний телефон</th>"),
-                                            city: getHeader("<th class=\"text-right\">Місце постійного проживання</th>"),
-                                            school: getHeader("<th class=\"text-right\">Навчальний заклад</th>"),
-                                        });
+
+                                        headersGenerator.setRequestHeader("Referer", "https://zno-kharkiv.org.ua/register/cabinet");
+                                        headersGenerator.deleteHeader("Cache-Control");
+                                        options = {
+                                            host: "zno-kharkiv.org.ua",
+                                            port: 443,
+                                            path: "/register/print/invite",
+                                            method: "GET",
+                                            headers: headersGenerator.headers,
+                                        };
+
+                                        https.request(options, function (inviteResponse) {
+
+                                            let chunks = [];
+
+                                            //console.log("kar");
+
+                                            inviteResponse.on("data", chunks.push.bind(chunks));
+
+                                            inviteResponse.on("end", () => {
+                                                zlib.gunzip(Buffer.concat(chunks), function (err, inviteBuff) {
+                                                    if (err) {
+                                                        reject(err);
+                                                        return;
+                                                    }
+                                                    let invite = inviteBuff.toString("utf8");
+                                                   // console.log(invite);
+                                                    resolve({
+                                                        personalCode: parsed.cu_pers_code,
+                                                        pin: parsed.cu_pin,
+                                                        surname: getHeader("<th width=\"50%\" class=\"text-right\">Прізвище</th>"),
+                                                        name: getHeader("<th class=\"text-right\">Ім'я</th>"),
+                                                        fatherName: getHeader("<th class=\"text-right\">По-батькові</th>"),
+                                                        birthday: getHeader("<th class=\"text-right\">Дата народження</th>"),
+                                                        phone: getHeader("<th class=\"text-right\">Контактний телефон</th>"),
+                                                        city: getHeader("<th class=\"text-right\">Місце постійного проживання</th>"),
+                                                        school: getHeader("<th class=\"text-right\">Навчальний заклад</th>"),
+                                                        invite
+                                                    });
+                                                });
+                                            }).on("error", reject);
+
+                                        }).on("error", reject).end();
                                     })
                                     //console.log(Buffer.concat(chunks).toString());
                                 })
-                            }).end();
+                            }).on("error", reject).end();
                         });
 
                         authReq.write(Buffer.from(authPostData).toString("utf8"));

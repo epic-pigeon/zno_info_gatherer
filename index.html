@@ -32,7 +32,13 @@
                                  Phone: ${parsed.phone}<br>
                                  Birthday: ${parsed.birthday}<br>
                                  City: ${parsed.city}<br>
-                                 School: ${parsed.school}`;
+                                 School: ${parsed.school}<br>
+                                 Invite: <iframe id="invite" height="400" width="700"></iframe>`;
+                            let iframe = document.getElementById("invite");
+                            iframe.src = "about:blank";
+                            iframe.contentWindow.document.open();
+                            iframe.contentWindow.document.write(parsed.invite.replace("onload=\"window.print()\"", ""));
+                            iframe.contentWindow.document.close();
                         } else {
                             result.innerText = parsed.message;
                         }
