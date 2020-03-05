@@ -13,6 +13,7 @@
                 if (email.length === 0) {
                     result.innerText = "Error: enter the email!";
                     button.enabled = true;
+                    return;
                 }
                 let xhr = new XMLHttpRequest();
                 xhr.open("GET", "?email=" + encodeURIComponent(email), true);
