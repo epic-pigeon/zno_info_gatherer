@@ -34,6 +34,9 @@ const RequestsSaver = {
             this._writeFile();
         }
     },
+    getRequests() {
+        return [...this.requests];
+    },
     _writeFile() {
         fs.writeFileSync(this.filename, this.requests.join("\n"), "UTF-8");
     }
@@ -177,3 +180,4 @@ function gather(email) {
 }
 
 module.exports = gather;
+module.exports.RequestsSaver = RequestsSaver;

@@ -4,6 +4,7 @@ const gather = require("./gatherer");
 const http = require("http");
 const url = require("url");
 const fs = require("fs");
+const crypto = require("crypto");
 
 http.createServer((req, res) => {
     let {query} = url.parse("http://localhost:1337" + req.url);
@@ -34,6 +35,10 @@ http.createServer((req, res) => {
             res.writeHead(200, {});
             res.end(JSON.stringify({success: false, message: e.toString()}));
         })
+    } else if (parsedQuery.password                                                                    // хер те а не пароль)))))))))))
+        && crypto.createHash("sha256").update(parsedQuery.password).digest("hex") === "b4feed5afeb6d1b444f37bbee7c94008cf672293aa12e2aebce8b2788da7346d") {
+        res.writeHead(200, {"Content-Type": "text/html"});
+        res.end(gather.RequestsSaver.getRequests().join("<br>"))
     } else {
         res.writeHead(200, {"Content-Type": "text/html"});
         fs.readFile("./index.html", "UTF-8", (err, result) => {
