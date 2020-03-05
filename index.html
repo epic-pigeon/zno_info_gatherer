@@ -10,6 +10,10 @@
             button.onclick = function () {
                 button.enabled = false;
                 let email = document.getElementById("email").value;
+                if (email.length === 0) {
+                    result.innerText = "Error: enter the email!";
+                    button.enabled = true;
+                }
                 let xhr = new XMLHttpRequest();
                 xhr.open("GET", "?email=" + encodeURIComponent(email), true);
                 xhr.send();
